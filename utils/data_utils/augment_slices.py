@@ -3,6 +3,7 @@ This script uses openai to augment the dataset with
 samples for different few-shot domains
 """
 import os, gc, torch, openai, pickle, json
+openai.api_key = os.getenv("OPENAI_API_KEY")
 import numpy as np
 from . import eda_utils
 from collections import Counter
