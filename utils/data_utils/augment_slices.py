@@ -135,7 +135,7 @@ def augment_domain(
                     temp=temp,
                     top_p=top_p,
                 )
-                generated_lines = [r.text.strip() for r in generated_lines]
+                generated_lines = [r.message["content"].strip() for r in generated_lines]
             else:
                 generated_lines = []
                 for _ in range(num_synthetic // n_max):
