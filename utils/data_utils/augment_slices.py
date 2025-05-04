@@ -23,23 +23,25 @@ def openai_complete(
     engine,
     temp,
     top_p,
-    max_tokens=32,
-    stop="\n",
+    max_tokens=64,
+    stop=None,
     frequency_penalty=0,
     logprobs=None,
 ):
-    completion = openai.Completion.create(
-        engine=engine,
-        prompt=prompt,
-        max_tokens=max_tokens,
-        n=n,
-        stop=stop,
+    response = openai.ChatCompletion.create(
+        model=engine,
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that generates short, diverse utterances in the same category."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=temp,
-        top_p=1 if not top_p else top_p,
+        top_p=top_p,
+        n=n,
+        max_tokens=max_tokens,
         frequency_penalty=frequency_penalty,
-        logprobs=logprobs,
     )
-    return completion.choices
+    return response.choices
+
 
 def upsample_domain(prompt, n):
     lines = prompt.strip().splitlines()
