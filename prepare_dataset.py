@@ -31,4 +31,10 @@ if __name__ == "__main__":
     print(f"Loaded dataset config for {args.name}")
     sample_few_shot(args.data_root, ds_config)
     print(f"augmenting for modes: {args.modes}")
-  
+    data_slices = augment_slices(
+        args.data_root,
+        ds_config,
+        modes=args.modes,
+        top_k=args.top_k,
+        top_p=args.top_p,
+    )
