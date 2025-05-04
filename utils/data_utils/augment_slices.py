@@ -2,11 +2,12 @@
 This script uses openai to augment the dataset with
 samples for different few-shot domains
 """
-import os, gc, torch, openai, pickle, json
+from openai import OpenAI
+import os, gc, torch, pickle, json
 import numpy as np
 from . import eda_utils
 from collections import Counter
-
+client = OpenAI()
 pjoin = os.path.join
 
 class GPTJChoice:
@@ -16,6 +17,9 @@ class GPTJChoice:
 def load_dataset_slices(data_root, data_name):
     with open(pjoin(data_root, data_name, "full", "data_full_suite.pkl"), "rb") as f:
         return pickle.load(f)
+
+from openai import OpenAI
+client = OpenAI()
 
 def openai_complete(
     prompt,
@@ -28,7 +32,7 @@ def openai_complete(
     frequency_penalty=0,
     logprobs=None,
 ):
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=engine,
         messages=[
             {"role": "system", "content": "You are a helpful assistant that generates short, diverse utterances in the same category."},
@@ -40,7 +44,8 @@ def openai_complete(
         max_tokens=max_tokens,
         frequency_penalty=frequency_penalty,
     )
-    return response.choices
+    return [choice.message.content.strip() for choice in response.choices]
+
 
 
 def upsample_domain(prompt, n):
@@ -137,7 +142,7 @@ def augment_domain(
                     temp=temp,
                     top_p=top_p,
                 )
-                generated_lines = [r.text.strip() for r in generated_lines]
+                generated_lines = [choice.message.content.strip() for choice in response.choices]
             else:
                 generated_lines = []
                 for _ in range(num_synthetic // n_max):
