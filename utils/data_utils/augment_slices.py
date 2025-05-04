@@ -472,16 +472,16 @@ def augment_slices(
     for mode in modes:
         if mode == "upsample":
             upsample_loop(dataset_slices, DOMAINS, data_save_path, id2name)
-        elif mode == "gptj":
-            gptj_loop(
-                dataset_slices,
-                DOMAINS,
-                ds_config,
-                data_save_path,
-                id2name,
-                top_k=top_k,
-                top_p=top_p,
-            )
+        # elif mode == "gptj":
+        #     gptj_loop(
+        #         dataset_slices,
+        #         DOMAINS,
+        #         ds_config,
+        #         data_save_path,
+        #         id2name,
+        #         top_k=top_k,
+        #         top_p=top_p,
+        #     )
         elif mode == "gpt3":
             if top_k:
                 print("NOTE: ignoring top_k for gpt3 as openai doesn't support it yet")
