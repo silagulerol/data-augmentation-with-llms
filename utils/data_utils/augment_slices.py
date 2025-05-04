@@ -196,30 +196,27 @@ def eda_loop(dataset_slices, domains, data_save_path, id2name):
         augment_domain(dataset_slices, val_domain, data_save_path, id2name, mode="eda")
 
 def gpt3_loop(dataset_slices, domains, ds_config, data_save_path, id2name, top_p):
-    for engine in ["davinci", "curie", "babbage", "ada"]:
-        for temp in [1.0]:
-            print(f"Engine: {engine} | Temp: {temp}")
-            for val_domain in domains:
-                if f"{engine}_{temp}" in dataset_slices[val_domain]["F"]:
-                    print(f"{engine}_{temp} for {val_domain} already exists")
-                    continue
-                print(f"Augmenting for domain: {val_domain}")
-                augment_domain(
-                    dataset_slices,
-                    val_domain,
-                    data_save_path,
-                    id2name,
-                    num_ex=ds_config.num_examples,
-                    n_max=ds_config.gpt3_batch_size,
-                    engine=engine,
-                    temp=temp,
-                    top_p=top_p,
-                    mode="gpt3",
-                )
-                if engine == "davinci":
-                    print("sleeping, for openai won't let me GPT3 no more...")
-                    import time
-                    time.sleep(60)
+    engine = "text-davinci-003"
+    for temp in [1.0]:
+        print(f"Engine: {engine} | Temp: {temp}")
+        for val_domain in domains:
+            if f"{engine}_{temp}" in dataset_slices[val_domain]["F"]:
+                print(f"{engine}_{temp} for {val_domain} already exists")
+                continue
+            print(f"Augmenting for domain: {val_domain}")
+            augment_domain(
+                dataset_slices,
+                val_domain,
+                data_save_path,
+                id2name,
+                num_ex=ds_config.num_examples,
+                n_max=ds_config.gpt3_batch_size,
+                engine=engine,
+                temp=temp,
+                top_p=top_p,
+                mode="gpt3",
+            )
+
 
 def augment_slices(data_root, ds_config, modes=["upsample", "gpt3", "eda"], top_k=False, top_p=False):
     dataset_slices = load_dataset_slices(data_root, ds_config.data_name)
