@@ -1,12 +1,9 @@
-"""
-This script uses openai to augment the dataset with
-samples for different few-shot domains
-"""
 from openai import OpenAI
 import os, gc, torch, pickle, json
 import numpy as np
 from . import eda_utils
 from collections import Counter
+
 client = OpenAI()
 pjoin = os.path.join
 
@@ -17,9 +14,6 @@ class GPTJChoice:
 def load_dataset_slices(data_root, data_name):
     with open(pjoin(data_root, data_name, "full", "data_full_suite.pkl"), "rb") as f:
         return pickle.load(f)
-
-from openai import OpenAI
-client = OpenAI()
 
 def openai_complete(
     prompt,
@@ -45,8 +39,6 @@ def openai_complete(
         frequency_penalty=frequency_penalty,
     )
     return [choice.message.content.strip() for choice in response.choices]
-
-
 
 def upsample_domain(prompt, n):
     lines = prompt.strip().splitlines()
@@ -83,7 +75,6 @@ def regenerate(input_prompt, n_empty, engine, temp, top_p):
             temp=temp,
             top_p=top_p,
         )
-        curr_lines = [r.text.strip() for r in curr_lines]
         n_empty = curr_lines.count("")
         new_lines.extend([t for t in curr_lines if t])
         if n_empty == 0:
@@ -134,26 +125,17 @@ def augment_domain(
             generated_lines = eda_domain(input_prompt, num_synthetic)
         else:
             print("GPT3ing...")
-            if num_synthetic <= n_max:
-                generated_lines = openai_complete(
+            generated_lines = []
+            for _ in range(num_synthetic // n_max):
+                _c = openai_complete(
                     prompt=input_prompt,
-                    n=num_synthetic,
+                    n=n_max,
                     engine=engine,
                     temp=temp,
                     top_p=top_p,
                 )
-                generated_lines = [choice.message.content.strip() for choice in response.choices]
-            else:
-                generated_lines = []
-                for _ in range(num_synthetic // n_max):
-                    _c = openai_complete(
-                        prompt=input_prompt,
-                        n=n_max,
-                        engine=engine,
-                        temp=temp,
-                        top_p=top_p,
-                    )
-                    generated_lines.extend([r.text.strip() for r in _c])
+                generated_lines.extend(_c)
+            if num_synthetic % n_max:
                 _c = openai_complete(
                     prompt=input_prompt,
                     n=num_synthetic % n_max,
@@ -161,7 +143,7 @@ def augment_domain(
                     temp=temp,
                     top_p=top_p,
                 )
-                generated_lines.extend([r.text.strip() for r in _c])
+                generated_lines.extend(_c)
 
             n_empty = generated_lines.count("")
             if n_empty > 0:
@@ -203,30 +185,26 @@ def eda_loop(dataset_slices, domains, data_save_path, id2name):
         augment_domain(dataset_slices, val_domain, data_save_path, id2name, mode="eda")
 
 def gpt3_loop(dataset_slices, domains, ds_config, data_save_path, id2name, top_p):
-    for engine in ["davinci", "curie", "babbage", "ada"]:
-        for temp in [1.0]:
-            print(f"Engine: {engine} | Temp: {temp}")
-            for val_domain in domains:
-                if f"{engine}_{temp}" in dataset_slices[val_domain]["F"]:
-                    print(f"{engine}_{temp} for {val_domain} already exists")
-                    continue
-                print(f"Augmenting for domain: {val_domain}")
-                augment_domain(
-                    dataset_slices,
-                    val_domain,
-                    data_save_path,
-                    id2name,
-                    num_ex=ds_config.num_examples,
-                    n_max=ds_config.gpt3_batch_size,
-                    engine=engine,
-                    temp=temp,
-                    top_p=top_p,
-                    mode="gpt3",
-                )
-                if engine == "davinci":
-                    print("sleeping, for openai won't let me GPT3 no more...")
-                    import time
-                    time.sleep(60)
+    engine = "gpt-3.5-turbo"
+    for temp in [1.0]:
+        print(f"Engine: {engine} | Temp: {temp}")
+        for val_domain in domains:
+            if f"{engine}_{temp}" in dataset_slices[val_domain]["F"]:
+                print(f"{engine}_{temp} for {val_domain} already exists")
+                continue
+            print(f"Augmenting for domain: {val_domain}")
+            augment_domain(
+                dataset_slices,
+                val_domain,
+                data_save_path,
+                id2name,
+                num_ex=ds_config.num_examples,
+                n_max=ds_config.gpt3_batch_size,
+                engine=engine,
+                temp=temp,
+                top_p=top_p,
+                mode="gpt3",
+            )
 
 def augment_slices(data_root, ds_config, modes=["upsample", "gpt3", "eda"], top_k=False, top_p=False):
     dataset_slices = load_dataset_slices(data_root, ds_config.data_name)
